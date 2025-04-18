@@ -71,6 +71,13 @@ while True:
                 
                 if extended_fingers == 4: #if the 4 fingers (nothumb) are up, the palm is out
                     cv2.putText(frame, "palm out", (petX-70, petY-50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2) #says close if finger is close
+                    if (id == 6):
+                        lm6 = hand_landmarks.landmark[6]
+                        lm10 = hand_landmarks.landmark[10]
+                        lm14 = hand_landmarks.landmark[14]
+
+                        if abs(lm6.x - lm10.x) < 0.04 and abs(lm10.x - lm14.x) < 0.04:
+                            cv2.circle(frame, (int(lm6.x * w), int(lm6.y * h)), 10, (0,0,255),cv2.FILLED)
 
     draw_pet(frame, petX, petY)
     draw_food(frame, foodX, foodY)
