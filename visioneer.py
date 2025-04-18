@@ -1,8 +1,13 @@
 import cv2
 import mediapipe as mp
 import random
+import time
+from collections import deque
 from pet import draw_pet, is_near
 from food import draw_food
+
+swipe_buffer = deque(maxlen=8) #stores last 5 posX (for swiping)
+swipe_cooldown = 0
 
 cap = cv2.VideoCapture(0) #opens webcam
 
@@ -35,7 +40,19 @@ while True:
 
                 if id == 8: #fingertip
                     cv2.circle(frame, (cx, cy), 10, (255,0,0),cv2.FILLED) #draw blue dot on index finger
-                    print(f"Index coord: x={cx}, y={cy}")
+                    swipe_buffer.append(cx)
+
+                    if len(swipe_buffer) == 8:
+                        if all(swipe_buffer[i] < swipe_buffer[i+1] for i in range(len(swipe_buffer)-1)):
+                                if time.time() - swipe_cooldown > 1:
+                                    print("swipe right")
+                                    swipe_cooldown = time.time()
+
+                        elif all(swipe_buffer[i] > swipe_buffer[i+1] for i in range(len(swipe_buffer)-1)):
+                            if time.time() - swipe_cooldown > 1:
+                                print("swipe left")
+                                swipe_cooldown= time.time()
+
 
                     if is_near(cx,cy,petX,petY,50):
                         cv2.putText(frame, "close", (petX-70, petY-50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2) #says close if finger is close
@@ -44,6 +61,16 @@ while True:
                     cv2.circle(frame, (cx, cy), 10, (0,255,0),cv2.FILLED) #draw red dot on index far
                     if is_near(cx,cy,petX,petY,50):
                         petX, petY = cx, cy #if on the long part of the index finger, it will follow
+                    
+                #checks if the palm is out
+                extended_finger_id = [(8, 6), (12, 10), (16,14), (20, 18)] #fingers and the joint that is directly below them
+                extended_fingers = 0
+                for tip, middle in extended_finger_id: #checks if the tip of the finger is above the joint
+                    if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[middle].y:
+                        extended_fingers += 1
+                
+                if extended_fingers == 4: #if the 4 fingers (nothumb) are up, the palm is out
+                    cv2.putText(frame, "palm out", (petX-70, petY-50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2) #says close if finger is close
 
     draw_pet(frame, petX, petY)
     draw_food(frame, foodX, foodY)
