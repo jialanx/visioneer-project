@@ -2,15 +2,19 @@ import cv2
 import mediapipe as mp
 import random
 import time
+mp_face = mp.solutions.face_detection
 from collections import deque
 from pet import draw_pet, is_near
 from food import draw_food
 
 swipe_buffer = deque(maxlen=8) #stores last 5 posX (for swiping)
 swipe_cooldown = 0
+last_seen_face= 0
+last_close_up = 0
 
 cap = cv2.VideoCapture(0) #opens webcam
 
+face_detection = mp_face.FaceDetection(model_selection=0, min_detection_confidence=0.5)
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands() #loads hand tracking module
 mp_draw = mp.solutions.drawing_utils #draws tracking lines
@@ -29,7 +33,25 @@ while True:
 
     frame = cv2.flip(frame, 1) #flips camera horizontally so it looks right
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) #converts BGR to RGB (coloring)
+    face_results = face_detection.process(rgb)
+    face_visible = False
+    face_close = False
 
+    if face_results.detections:
+        last_seen_face = time.time() 
+        face_visible = True
+        for detection in face_results.detections:
+            box = detection.location_data.relative_bounding_box
+            face_area = box.width * box.height
+
+            if face_area > 0.8:
+                face_close = True
+                last_close_up = time.time()
+    
+    if face_close and time.time() - last_close_up < 5: 
+        print("face is up close")
+    if not face_visible and time.time() - last_seen_face > 7:
+        print("face is gone")
     result = hands.process(rgb) 
     if result.multi_hand_landmarks: #Checks if it found hands
         for hand_landmarks in result.multi_hand_landmarks:
@@ -40,27 +62,12 @@ while True:
 
                 if id == 8: #fingertip
                     cv2.circle(frame, (cx, cy), 10, (255,0,0),cv2.FILLED) #draw blue dot on index finger
-                    swipe_buffer.append(cx)
-
-                    if len(swipe_buffer) == 8:
-                        if all(swipe_buffer[i] < swipe_buffer[i+1] for i in range(len(swipe_buffer)-1)):
-                                if time.time() - swipe_cooldown > 1:
-                                    print("swipe right")
-                                    swipe_cooldown = time.time()
-
-                        elif all(swipe_buffer[i] > swipe_buffer[i+1] for i in range(len(swipe_buffer)-1)):
-                            if time.time() - swipe_cooldown > 1:
-                                print("swipe left")
-                                swipe_cooldown= time.time()
 
 
                     if is_near(cx,cy,petX,petY,50):
                         cv2.putText(frame, "close", (petX-70, petY-50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2) #says close if finger is close
                     
-                if id == 6:
-                    cv2.circle(frame, (cx, cy), 10, (0,255,0),cv2.FILLED) #draw red dot on index far
-                    if is_near(cx,cy,petX,petY,50):
-                        petX, petY = cx, cy #if on the long part of the index finger, it will follow
+                
                     
                 #checks if the palm is out
                 extended_finger_id = [(8, 6), (12, 10), (16,14), (20, 18)] #fingers and the joint that is directly below them
@@ -78,6 +85,29 @@ while True:
 
                         if abs(lm6.x - lm10.x) < 0.04 and abs(lm10.x - lm14.x) < 0.04:
                             cv2.circle(frame, (int(lm6.x * w), int(lm6.y * h)), 10, (0,0,255),cv2.FILLED)
+                    
+                            swipe_buffer.append(cx)
+
+                            if len(swipe_buffer) == 8:
+                                if all(swipe_buffer[i] < swipe_buffer[i+1] for i in range(len(swipe_buffer)-1)):
+                                        if time.time() - swipe_cooldown > 1:
+                                            print("swipe right")
+                                            swipe_cooldown = time.time()
+                                            if (petX > cx) and (is_near(petX, petY, cx, cy, 200)):
+                                                print("blown away")
+                                                vx = 6
+
+                                elif all(swipe_buffer[i] > swipe_buffer[i+1] for i in range(len(swipe_buffer)-1)):
+                                    if time.time() - swipe_cooldown > 1:
+                                        print("swipe left")
+                                        swipe_cooldown= time.time()
+                                        if (petX < cx) and (is_near(petX, petY, cx, cy, 200)):
+                                            print("blown away")
+                                            vx = -6
+                elif id == 6:
+                    cv2.circle(frame, (cx, cy), 10, (0,255,0),cv2.FILLED) #draw red dot on index far
+                    if is_near(cx,cy,petX,petY,50):
+                        petX, petY = cx, cy #if on the long part of the index finger, it will follow)
 
     draw_pet(frame, petX, petY)
     draw_food(frame, foodX, foodY)
