@@ -13,7 +13,7 @@ bird_two = cv2.imread("sprites/birdflytwo.png", cv2.IMREAD_UNCHANGED)
 bird_peek_one = cv2.imread("sprites/birdlookone.png", cv2.IMREAD_UNCHANGED)
 bird_peek_two = cv2.imread("sprites/birdlooktwo.png", cv2.IMREAD_UNCHANGED)
 branch = cv2.imread("sprites/branch.png", cv2.IMREAD_UNCHANGED)
-bird_chirp = cv2.imread("sprites/bird_chirp_audio.png", cv2.IMREAD_UNCHANGED)
+bird_chirp = cv2.imread("sprites/birdchirp.png", cv2.IMREAD_UNCHANGED)
 bird_chirp_audio= sa.WaveObject.from_wave_file("audio/bird_chirp_audios.wav")
 
 # resize is needed
