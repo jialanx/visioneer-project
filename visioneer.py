@@ -186,15 +186,19 @@ while True:
                                 if time.time() - swipe_cooldown > 1: # its been at >1s since last swipe
                                     swipe_coords.clear()
                                     swipe_cooldown = time.time()
-                                    if (bird_posX > cx) and (is_near(bird_posX, bird_posY, cx, cy, 200)): # if the pet is near, change the velocity "blowing it away"
+                                    #print("swipeR")
+                                    if is_near(bird_posX, bird_posY, cx, cy, 300): # if the pet is near, change the velocity "blowing it away"
                                         vx = 7
+                                        
 
                             elif all(swipe_coords[i] > swipe_coords[i+1] for i in range(len(swipe_coords)-1)):
                                 if time.time() - swipe_cooldown > 1:
                                     swipe_coords.clear()
+                                    #print("swipeL")
                                     swipe_cooldown= time.time()
-                                    if (bird_posX < cx) and (is_near(bird_posX, bird_posY, cx, cy, 200)):
+                                    if is_near(bird_posX, bird_posY, cx, cy, 300):
                                             vx = -7
+                                            
 
                 elif id == 6: # middle of index finger
                     #cv2.circle(frame, (cx, cy), 10, (0,255,0),cv2.FILLED) # draw red dot on index far
